@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>🌸 花仙精灵王图鉴 · 花之法典收集册</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Comic Neue', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(145deg, #fff0e6, #f7e5de);
+            color: #433b34;
+        }
+
+        .navbar {
+            background: rgba(255, 248, 240, 0.95);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 2px solid #ffb7c5;
+        }
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 68px;
+        }
+        .nav-logo {
+            font-size: 1.6rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #e86f8c, #b5838d);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-decoration: none;
+        }
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+        .nav-menu a {
+            text-decoration: none;
+            color: #8b5e6b;
+            font-weight: 600;
+            transition: 0.2s;
+            padding: 6px 0;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-menu a:hover,
+        .nav-menu a.active {
+            color: #e86f8c;
+            border-bottom-color: #e86f8c;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .page-header {
+            text-align: center;
+            margin: 30px 0 20px;
+        }
+        .page-header h1 {
+            font-size: 2.8rem;
+            color: #b1546b;
+        }
+        .subhead {
+            color: #866b6f;
+            font-size: 1.1rem;
+            margin-bottom: 32px;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+            gap: 32px;
+            margin: 20px 0 50px;
+        }
+
+        .spirit-card {
+            background: #fffef7;
+            border-radius: 48px;
+            padding: 22px 20px;
+            transition: 0.2s;
+            border: 1px solid #ffe0cf;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.04);
+        }
+        .spirit-card:hover {
+            transform: translateY(-6px);
+            border-color: #f6ae9a;
+            box-shadow: 0 20px 28px rgba(0,0,0,0.08);
+            background: white;
+        }
+
+        .spirit-img {
+            width: 100%;
+            border-radius: 28px;
+            margin-bottom: 18px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+            background: #fef5ea;
+        }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 2px dashed #ffe0cf;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+        .flower-name {
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: #c16f6f;
+        }
+        .tag {
+            background: #f9e3da;
+            padding: 4px 12px;
+            border-radius: 60px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #bf7866;
+        }
+
+        .spirit-name {
+            font-size: 1.9rem;
+            font-weight: bold;
+            margin: 10px 0 6px;
+            color: #4a2f3a;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        .lang-name {
+            font-size: 1rem;
+            color: #a0686e;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .flower-meaning {
+            background: #faf0ea;
+            border-radius: 50px;
+            padding: 6px 14px;
+            display: inline-block;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #ac7b6b;
+            margin: 12px 0 12px;
+        }
+        .desc {
+            color: #5a4a44;
+            margin: 12px 0 18px;
+            line-height: 1.45;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: #b98295;
+            padding: 10px 28px;
+            border-radius: 40px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            display: inline-block;
+            transition: 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .btn-primary:hover {
+            background: #9e6d7e;
+            transform: scale(1.01);
+        }
+
+        footer {
+            text-align: center;
+            padding: 32px;
+            background: #ecd9cf;
+            color: #826a60;
+            margin-top: 60px;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 680px) {
+            .card-grid { grid-template-columns: 1fr; }
+            .page-header h1 { font-size: 1.9rem; }
+            .spirit-name { font-size: 1.6rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">🌸 花仙·拉贝尔</a>
+            <ul class="nav-menu">
+                <li><a href="index.html">拉贝尔大陆</a></li>
+                <li><a href="collection.html" class="active">🌸 精灵王图鉴</a></li>
+                <li><a href="https://www.iqiyi.com/lib/m_222780414.html" target="_blank">📺 在线观看</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="page-header">
+            <h1>🌸 花仙精灵王图鉴 · 花之法典收集册 🌸</h1>
+            <div class="subhead">每一位精灵王都是一种花的化身，带着独特的花语与回忆。</div>
+        </div>
+
+        <div class="card-grid">
+            <!-- 椿 -->
+            <div class="spirit-card">
+                <img class="spirit-img" src="images/chun.jpg" alt="椿">
+                <div class="card-top"><span class="flower-name">山茶花</span><span class="tag">初始启动精灵</span></div>
+                <div class="spirit-name">椿</div>
+                <div class="lang-name">Tsubaki</div>
+                <div class="flower-meaning">🌸 花语：理想的爱 · 谦让</div>
+                <div class="desc">山茶花精灵王，花之法典的初始启动精灵。俏皮可爱、内心温柔，擅长风雪与念力，是夏安安的契约守护精灵。</div>
+            </div>
+
+            <!-- 山梦 -->
+            <div class="spirit-card">
+                <img class="spirit-img" src="images/shanmeng.jpg" alt="山梦">
+                <div class="card-top"><span class="flower-name">瑞香花</span><span class="tag">歌唱的精灵</span></div>
+                <div class="spirit-name">山梦</div>
+                <div class="lang-name">Shanmeng</div>
+                <div class="flower-meaning">🌸 花语：喜悦之情 · 吉祥</div>
+                <div class="desc">瑞香花精灵王，喜欢唱《风中的精灵》，歌声动听。温柔善良，能力为结界与泡泡。</div>
+            </div>
+
+            <!-- 红雨 -->
+            <div class="spirit-card">
+                <img class="spirit-img" src="images/hongyu.jpg" alt="红雨">
+                <div class="card-top"><span class="flower-name">桃花</span><span class="tag">繁荣使者</span></div>
+                <div class="spirit-name">红雨</div>
+                <div class="lang-name">Hongyu</div>
+                <div class="flower-meaning">🌸 花语：繁荣</div>
+                <div class="desc">桃花精灵王，大大咧咧但乐于助人，能力为藤蔓生长与植物操控。</div>
+            </div>
+
+            <!-- 玛格丽特 -->
+            <div class="spirit-card">
+                <img class="spirit-img" src="images/margaret.jpg" alt="玛格丽特">
+                <div class="card-top"><span class="flower-name">小雏菊</span><span class="tag">幻境之主</span></div>
+                <div class="spirit-name">玛格丽特</div>
+                <div class="lang-name">Margaret</div>
+                <div class="flower-meaning">🌸 花语：隐藏在心中的爱 · 谜</div>
+                <div class="desc">小雏菊精灵王，喜欢用幻觉迷宫捉弄他人，能力为“幻觉迷宫”。</div>
+            </div>
+
+            <!-- 苏睦 -->
+            <div class="spirit-card">
+                <img class="spirit-img" src="images/sumu.jpg" alt="苏睦">
+                <div class="card-top"><span class="flower-name">紫荆花</span><span class="tag">和睦使者</span></div>
+                <div class="spirit-name">苏睦</div>
+                <div class="lang-name">Sumu</div>
+                <div class="flower-meaning">🌸 花语：团结的友谊</div>
+                <div class="desc">紫荆花精灵王，温柔善良，希望所有人和睦相处，象征友谊与团结。</div>
+            </div>
+
+            <!-- 曼珠沙华 -->
+            <div class="spirit-card">
+                <img class="spirit-img" src="images/manzhushahua.jpg" alt="曼珠沙华">
+                <div class="card-top"><span class="flower-name">彼岸花</span><span class="tag">幽冥之花</span></div>
+                <div class="spirit-name">曼珠沙华</div>
+                <div class="lang-name">Manjusaka</div>
+                <div class="flower-meaning">🌸 花语：无尽的思念 · 悲伤的回忆</div>
+                <div class="desc">彼岸花精灵王，神秘而强大，花叶永不相见，象征着离别与轮回。</div>
+            </div>
+
+            <!-- 君影 -->
+            <div class="spirit-card">
+                <img class="spirit-img" src="images/junying.jpg" alt="君影">
+                <div class="card-top"><span class="flower-name">铃兰</span><span class="tag">纯洁幸福</span></div>
+                <div class="spirit-name">君影</div>
+                <div class="lang-name">Junying</div>
+                <div class="flower-meaning">🌸 花语：纯洁 · 幸福的到来</div>
+                <div class="desc">铃兰精灵王，优雅内敛，象征好运，传递美好的祝福。</div>
+            </div>
+
+            <!-- 穆回 -->
+            <div class="spirit-card">
+                <img class="spirit-img" src="images/muhui.jpg" alt="穆回">
+                <div class="card-top"><span class="flower-name">勿忘我</span><span class="tag">生命回溯</span></div>
+                <div class="spirit-name">穆回</div>
+                <div class="lang-name">Muhui</div>
+                <div class="flower-meaning">🌸 花语：真实的记忆 · 请不要忘记我</div>
+                <div class="desc">勿忘我精灵王，掌握“生命回溯”能力，帮助迷失的精灵找回初心。</div>
+            </div>
+
+            <!-- 御姬 -->
+            <div class="spirit-card">
+                <img class="spirit-img" src="images/yuji.jpg" alt="御姬">
+                <div class="card-top"><span class="flower-name">紫藤</span><span class="tag">优雅之花</span></div>
+                <div class="spirit-name">御姬</div>
+                <div class="lang-name">Yuji</div>
+                <div class="flower-meaning">🌸 花语：深深思念 · 执着</div>
+                <div class="desc">紫藤精灵王，高贵典雅，代表着对信念的长久坚守。</div>
+            </div>
+
+            <!-- 爱丽丝 -->
+            <div class="spirit-card">
+                <img class="spirit-img" src="images/alice.jpg" alt="爱丽丝">
+                <div class="card-top"><span class="flower-name">鸢尾花</span><span class="tag">爱与希望</span></div>
+                <div class="spirit-name">爱丽丝</div>
+                <div class="lang-name">Iris</div>
+                <div class="flower-meaning">🌸 花语：爱的使者 · 希望</div>
+                <div class="desc">鸢尾花精灵王，优雅明媚，传递花仙国最纯净的祝福。</div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 20px 0 40px;">
+            <a href="index.html" class="btn-primary">← 返回拉贝尔大陆</a>
+        </div>
+    </main>
+
+    <footer>
+        <p>🌸 非官方站 · 花仙精灵王图鉴持续收集中 🌸<br>© 牟圣熹的小花仙收藏簿 | 动画版权归上海淘米动画有限公司所有</p>
+    </footer>
+</body>
+</html>

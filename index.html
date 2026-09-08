@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>🌸 拉贝尔大陆 · 花仙魔法使的回忆</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', 'Comic Neue', 'Poppins', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(145deg, #fbe9f0 0%, #e0f0e8 100%);
+            color: #4a3b2c;
+            line-height: 1.5;
+        }
+
+        .navbar {
+            background: rgba(255, 248, 240, 0.95);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 2px solid #ffb7c5;
+        }
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 68px;
+        }
+        .nav-logo {
+            font-size: 1.6rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #e86f8c, #b5838d);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-decoration: none;
+        }
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+        .nav-menu a {
+            text-decoration: none;
+            color: #8b5e6b;
+            font-weight: 600;
+            transition: 0.2s;
+            padding: 6px 0;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-menu a:hover,
+        .nav-menu a.active {
+            color: #e86f8c;
+            border-bottom-color: #e86f8c;
+        }
+
+        .hero {
+            background: linear-gradient(120deg, #fae1df, #ffe6f0);
+            text-align: center;
+            padding: 70px 20px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            color: #b1546b;
+            text-shadow: 2px 2px 12px rgba(255,215,245,0.8);
+            margin-bottom: 1rem;
+        }
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 650px;
+            margin: 0 auto 1.8rem;
+            color: #6b4e5a;
+        }
+        .btn-primary {
+            background: #f6ae9a;
+            color: white;
+            padding: 12px 32px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s;
+            box-shadow: 0 6px 0 #b95c48;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            background: #f1967e;
+            box-shadow: 0 8px 0 #b95c48;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .world-box {
+            background: rgba(255,245,235,0.7);
+            backdrop-filter: blur(6px);
+            border-radius: 48px;
+            padding: 32px 28px;
+            margin: 40px 0;
+            border: 1px solid rgba(255,210,195,0.8);
+        }
+        .world-box h2 {
+            color: #c46b6b;
+            margin-bottom: 16px;
+            font-size: 1.8rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            text-align: center;
+            margin: 50px 0 20px;
+            color: #b45a6b;
+        }
+        .role-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 28px;
+            margin: 20px 0;
+        }
+        .role-card {
+            background: #fffef7;
+            border-radius: 40px;
+            padding: 24px 20px;
+            text-align: center;
+            transition: 0.2s;
+            box-shadow: 0 12px 20px rgba(0,0,0,0.05);
+            border: 1px solid #ffe2d4;
+        }
+        .role-card:hover {
+            transform: translateY(-6px);
+            border-color: #f6ae9a;
+            box-shadow: 0 18px 28px rgba(0,0,0,0.08);
+        }
+        .role-img {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 60px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 3px solid #ffd2bf;
+        }
+        .role-card h3 {
+            font-size: 1.6rem;
+            color: #c46b6b;
+            margin: 10px 0 8px;
+        }
+        .role-card .identity {
+            font-weight: 600;
+            color: #e8877a;
+            margin-bottom: 12px;
+        }
+
+        .collection-tease {
+            background: #e2dcd5;
+            border-radius: 32px;
+            padding: 30px;
+            text-align: center;
+            background-image: radial-gradient(circle at 10% 30%, rgba(255,210,200,0.4) 2%, transparent 2.5%);
+            background-size: 28px 28px;
+            margin: 40px 0;
+        }
+        .progress-bar-bg {
+            background: #f0e2d4;
+            border-radius: 100px;
+            height: 20px;
+            width: 100%;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #e8877a, #f6ae9a);
+            width: 38%;
+            height: 100%;
+            border-radius: 100px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 32px;
+            background: #ecd9cf;
+            color: #826a60;
+            margin-top: 60px;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .nav-menu { gap: 1rem; }
+            .section-title { font-size: 1.6rem; }
+            .role-img { width: 90px; height: 90px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">🌸 花仙·拉贝尔</a>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="active">拉贝尔大陆</a></li>
+                <li><a href="collection.html">🌸 精灵王图鉴</a></li>
+                <li><a href="https://www.iqiyi.com/search/%E5%B0%8F%E8%8A%B1%E4%BB%99.html" target="_blank">📺 在线观看</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="hero">
+        <h1>🌸 花之法典 · 花仙精灵王 🌸</h1>
+        <p>传奇的拉贝尔大陆藏着神秘力量，只有被承认的魔法使者才能唤醒。少女夏安安与花仙精灵王缔结盟约，开启了守护希望与美好的冒险之旅。</p>
+        <a href="collection.html" class="btn-primary">✨ 开始收集精灵王 ✨</a>
+    </div>
+
+    <main class="container">
+        <div class="world-box">
+            <h2>✨ 拉贝尔大陆的传说</h2>
+            <p>花之法典由普普拉花神与古灵仙族选定50位花仙精灵王镇守，每一位精灵王都象征一种花与花语。山茶花精灵王椿是最初启动精灵，只有收复她，才能继续收集其它花仙精灵王。魔法使者夏安安、库库鲁王子、千韩等伙伴，一同守护大陆不被黑暗力量侵蚀。</p>
+            <p style="margin-top: 12px;">🎵 “风中的精灵啊，请赐予我光芒与希望！” 在这里，我们一起重温童年的花仙之梦。</p>
+        </div>
+
+        <h2 class="section-title">⭐ 主要魔法使者 · 守护伙伴</h2>
+        <div class="role-grid">
+            <!-- 夏安安 -->
+            <div class="role-card">
+                <img class="role-img" src="images/xiaanan.jpg" alt="夏安安">
+                <h3>夏安安</h3>
+                <div class="identity">🌺 花仙魔法使者 · 山茶花契约者</div>
+                <div>拥有山茶花精灵王椿作为守护精灵，温柔又勇敢，命中注定要重组花之法典。</div>
+            </div>
+            <!-- 库库鲁 -->
+            <div class="role-card">
+                <img class="role-img" src="images/kukulu.jpg" alt="库库鲁">
+                <h3>库库鲁</h3>
+                <div class="identity">⚡ 古灵仙族王子</div>
+                <div>性格顽皮但拥有骑士精神，因为诅咒变成小孩子模样，与夏安安一起寻找花之法典。</div>
+            </div>
+            <!-- 千韩 -->
+            <div class="role-card">
+                <img class="role-img" src="images/qianhan.jpg" alt="千韩">
+                <h3>千韩</h3>
+                <div class="identity">💜 丁香花精灵王 · 百结契约者</div>
+                <div>温柔优雅，是夏安安最好的朋友，也是丁香花精灵王的守护者。</div>
+            </div>
+        </div>
+
+        <div class="collection-tease">
+            <h3>📖 花仙精灵王图鉴</h3>
+            <p>目前图鉴已收录 50+ 位花仙精灵王，等待魔法使唤醒</p>
+            <div class="progress-bar-bg"><div class="progress-fill"></div></div>
+            <p>✨ 你收集了多少位花仙精灵王？点击下方按钮查看图鉴 ✨</p>
+            <a href="collection.html" class="btn-primary" style="background:#b98295; box-shadow:0 6px 0 #724c5a;">🌸 前往花仙精灵王图鉴 →</a>
+        </div>
+    </main>
+
+    <footer>
+        <p>🌸 非官方站 · 仅用于个人兴趣收集与分享 🌸<br>© 牟圣熹的小花仙回忆簿 | 动画版权归上海淘米动画有限公司所有，点击可前往正版平台观看</p>
+    </footer>
+</body>
+</html>
