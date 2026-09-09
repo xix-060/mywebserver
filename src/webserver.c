@@ -13,7 +13,8 @@
  *   - 发送缓冲暂满（EAGAIN）时保存发送现场，注册 EPOLLOUT 续传，
  *     不再误判为错误关闭连接；
  *   - sendfile 零拷贝发送静态文件（显式偏移支持断点续传）；
- *   - Keep-Alive 长连接 + 时间轮超时回收；
+ *   - Keep-Alive 长连接 + 时间轮超时回收（tick 由单调时钟严格限定每秒一次，
+ *     避免高负载下 epoll 频繁唤醒导致定时器飞转误杀活跃连接）；
  *   - 事件投递前先摘除定时器，消除超时回调与工作线程的 use-after-free；
  *   - URL 解码后再做目录遍历检查，防 %2e%2e 绕过；
  *   - 异步日志、信号优雅退出。
@@ -610,19 +611,27 @@ int main(int argc, char **argv)
 
     struct epoll_event events[MAX_EVENTS];
 
+    /* 时间轮节拍：tick 必须严格「每秒一次」。epoll_wait 在高负载下每秒会
+     * 被事件唤醒成千上万次，若每次唤醒都 tick，时间轮会飞转、定时器瞬间
+     * 到期误杀活跃连接——故用单调时钟限制节拍。 */
+    struct timespec last_tick;
+    clock_gettime(CLOCK_MONOTONIC, &last_tick);
+
     while (!g_stop)
     {
-        /* epoll_wait 超时 1000ms：每秒唤醒一次驱动时间轮 */
+        /* epoll_wait 超时 1000ms：空闲时每秒唤醒一次驱动时间轮 */
         int n = epoll_wait(epfd, events, MAX_EVENTS, 1000);
         if (n < 0)
         {
             if (errno == EINTR)
             {
-                timer_wheel_tick(timer); /* 信号中断也推进一次 */
-                continue;
+                /* 信号中断：由下方统一按真实时间判断是否 tick */
             }
-            log_error("epoll_wait: %s", strerror(errno));
-            break;
+            else
+            {
+                log_error("epoll_wait: %s", strerror(errno));
+                break;
+            }
         }
 
         for (int i = 0; i < n; i++)
@@ -686,8 +695,17 @@ int main(int argc, char **argv)
             }
         }
 
-        /* 每秒推进一格时间轮，回收空闲 Keep-Alive 连接 */
-        timer_wheel_tick(timer);
+        /* 按真实流逝时间推进时间轮：最多每秒一格，空闲时 epoll_wait
+         * 1 秒超时、繁忙时事件唤醒，两种情况节拍都准确 */
+        struct timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        long elapsed_ms = (now.tv_sec - last_tick.tv_sec) * 1000
+                        + (now.tv_nsec - last_tick.tv_nsec) / 1000000;
+        if (elapsed_ms >= 1000)
+        {
+            timer_wheel_tick(timer);
+            last_tick = now;
+        }
     }
 
     /* 优雅退出 */
