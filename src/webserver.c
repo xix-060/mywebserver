@@ -10,8 +10,11 @@
  * 关键技术点：
  *   - epoll LT + EPOLLONESHOT：同一连接事件不会被多个线程同时处理；
  *   - 非阻塞 socket + 增量解析器：正确处理半包/粘包与 HTTP 管道化；
- *   - sendfile 零拷贝发送静态文件；send 循环处理短写（short write）；
+ *   - 发送缓冲暂满（EAGAIN）时保存发送现场，注册 EPOLLOUT 续传，
+ *     不再误判为错误关闭连接；
+ *   - sendfile 零拷贝发送静态文件（显式偏移支持断点续传）；
  *   - Keep-Alive 长连接 + 时间轮超时回收；
+ *   - 事件投递前先摘除定时器，消除超时回调与工作线程的 use-after-free；
  *   - URL 解码后再做目录遍历检查，防 %2e%2e 绕过；
  *   - 异步日志、信号优雅退出。
  */
@@ -48,15 +51,34 @@ static int   g_port     = 80;
 static int   g_threads  = 0;    /* 0 = 按 CPU 核数 */
 static char  g_docroot[256] = ".";
 
-/* 连接上下文：连接生命周期内常驻，存放该连接的接收缓冲区（处理半包） */
+/* 连接状态：读事件中处理请求；发送缓冲满时转为写状态，由 EPOLLOUT 续传 */
+typedef enum
+{
+    CONN_READING = 0,
+    CONN_WRITING = 1
+} conn_state_t;
+
+/* 连接上下文：连接生命周期内常驻，存放接收缓冲区（处理半包）
+ * 以及响应发送现场（非阻塞发送遇到 EAGAIN 时保存，EPOLLOUT 后续传） */
 typedef struct conn_ctx
 {
     int fd;
     int epfd;
     timer_wheel_t *timer;
     char ip[INET6_ADDRSTRLEN];
+    conn_state_t state;
     char rbuf[READ_BUFFER_SIZE];
     int  rlen;
+
+    /* 当前响应的发送现场 */
+    char headbuf[512];   /* 响应头 */
+    int  headlen;
+    int  headsent;
+    int  filefd;         /* 待发送文件（-1 表示无文件体） */
+    off_t filetotal;
+    off_t filesent;
+    int  cur_keep;       /* 当前响应结束后连接是否复用 */
+    int  cur_header_len; /* 当前请求头长度，响应发完后才从 rbuf 摘除 */
 } conn_ctx_t;
 
 static volatile sig_atomic_t g_stop = 0;
@@ -85,52 +107,64 @@ static const char *get_mime_type(const char *path)
     return "application/octet-stream";
 }
 
-/* 循环发送，处理短写（short write）和 EINTR */
-static int send_all(int fd, const char *buf, int len)
+/*
+ * 增量发送响应（响应头 + 文件体）。
+ * 返回值： 0 = 已全部发送完；1 = 发送缓冲暂满（EAGAIN），需等 EPOLLOUT 续传；
+ *         -1 = 连接出错，应关闭。
+ * 发送现场保存在 ctx 中，多次调用可断点续传。
+ */
+static int flush_response(conn_ctx_t *ctx)
 {
-    int sent = 0;
-    while (sent < len)
+    /* 1. 发送响应头 */
+    while (ctx->headsent < ctx->headlen)
     {
-        ssize_t n = send(fd, buf + sent, (size_t)(len - sent), MSG_NOSIGNAL);
-        if (n < 0)
+        ssize_t n = send(ctx->fd, ctx->headbuf + ctx->headsent,
+                         (size_t)(ctx->headlen - ctx->headsent), MSG_NOSIGNAL);
+        if (n > 0)
         {
-            if (errno == EINTR)
-            {
-                continue;
-            }
-            return -1;
+            ctx->headsent += (int)n;
+            continue;
         }
-        sent += (int)n;
+        if (n < 0 && errno == EINTR)
+        {
+            continue;
+        }
+        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+        {
+            return 1; /* 等 EPOLLOUT */
+        }
+        return -1;
+    }
+
+    /* 2. sendfile 零拷贝发送文件体（显式偏移，断点续传安全） */
+    while (ctx->filesent < ctx->filetotal && ctx->filefd >= 0)
+    {
+        off_t off = ctx->filesent;
+        ssize_t n = sendfile(ctx->fd, ctx->filefd, &off,
+                             (size_t)(ctx->filetotal - ctx->filesent));
+        if (n > 0)
+        {
+            ctx->filesent += n;
+            continue;
+        }
+        if (n < 0 && errno == EINTR)
+        {
+            continue;
+        }
+        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+        {
+            return 1; /* 等 EPOLLOUT */
+        }
+        return -1;
     }
     return 0;
 }
 
-/* sendfile 零拷贝发送整个文件，处理 EINTR 与部分发送 */
-static int send_file_all(int sockfd, int filefd, off_t total)
-{
-    off_t remaining = total;
-    while (remaining > 0)
-    {
-        ssize_t n = sendfile(sockfd, filefd, NULL, (size_t)remaining);
-        if (n < 0)
-        {
-            if (errno == EINTR)
-            {
-                continue;
-            }
-            return -1;
-        }
-        if (n == 0)
-        {
-            break;
-        }
-        remaining -= n;
-    }
-    return 0;
-}
-
-/* 发送一次完整 HTTP 响应；返回 1 表示连接可复用，0 表示应关闭 */
-static int serve_request(conn_ctx_t *ctx, const http_request_t *req)
+/*
+ * 准备一次响应：定位文件、填充 ctx 中的响应头与发送现场（不做实际发送）。
+ * 返回响应完成后连接是否可复用（Keep-Alive）。
+ */
+static int build_response(conn_ctx_t *ctx, const http_request_t *req)
 {
     const char *url = req->path;
     if (url[0] == '/' && url[1] == '\0')
@@ -194,35 +228,40 @@ static int serve_request(conn_ctx_t *ctx, const http_request_t *req)
         mime = "text/html; charset=utf-8";
     }
 
-    int keep = req->keep_alive;
-    char head[512];
-    int hlen = snprintf(head, sizeof(head),
-                        "HTTP/1.1 %d %s\r\n"
-                        "Server: myweb_msx/2.0\r\n"
-                        "Content-Type: %s\r\n"
-                        "Content-Length: %ld\r\n"
-                        "Connection: %s\r\n"
-                        "\r\n",
-                        status, (status == 200) ? "OK" : "Not Found",
-                        mime, (long)size, keep ? "keep-alive" : "close");
+    /* 初始化发送现场 */
+    ctx->headlen = snprintf(ctx->headbuf, sizeof(ctx->headbuf),
+                            "HTTP/1.1 %d %s\r\n"
+                            "Server: myweb_msx/2.0\r\n"
+                            "Content-Type: %s\r\n"
+                            "Content-Length: %ld\r\n"
+                            "Connection: %s\r\n"
+                            "\r\n",
+                            status, (status == 200) ? "OK" : "Not Found",
+                            mime, (long)size,
+                            req->keep_alive ? "keep-alive" : "close");
+    ctx->headsent = 0;
+    ctx->filetotal = size;
+    ctx->filesent = 0;
+    ctx->cur_keep = req->keep_alive;
+    ctx->cur_header_len = 0; /* 由调用方在响应发送完成后填入 */
 
-    if (send_all(ctx->fd, head, hlen) < 0)
+    if (is_head)
     {
-        keep = 0;
-    }
-    if (filefd >= 0)
-    {
-        /* HEAD 请求只返回响应头，不发送文件体；Content-Length 仍为文件大小 */
-        if (!is_head && send_file_all(ctx->fd, filefd, size) < 0)
+        /* HEAD：只返回响应头（Content-Length 仍为文件大小），不发送 body */
+        if (filefd >= 0)
         {
-            keep = 0;
+            close(filefd);
         }
-        close(filefd);
+        ctx->filefd = -1;
+    }
+    else
+    {
+        ctx->filefd = filefd; /* 可能为 -1（404 且自定义页缺失） */
     }
 
     log_info("%s %s %s -> %d (%ld bytes)",
              ctx->ip, req->method, url, status, (long)size);
-    return keep;
+    return ctx->cur_keep;
 }
 
 /* 时间轮到期回调：关闭空闲 Keep-Alive 连接 */
@@ -235,17 +274,24 @@ static void on_conn_timeout(int fd, void *arg)
     free(ctx);
 }
 
-/* 关闭连接：摘除定时器、移出 epoll、释放上下文 */
+/* 关闭连接：兜底摘除定时器、移出 epoll、释放上下文。
+ * 注意：定时器在事件投递前已由主线程摘除，这里的 remove 是防御性空操作；
+ *       仅在 CONN_WRITING 等待 EPOLLOUT 期间被超时回调关闭的连接不会走到这里。 */
 static void close_conn(conn_ctx_t *ctx)
 {
+    if (ctx->filefd >= 0)
+    {
+        close(ctx->filefd);
+        ctx->filefd = -1;
+    }
     timer_wheel_remove(ctx->timer, ctx->fd);
     epoll_ctl(ctx->epfd, EPOLL_CTL_DEL, ctx->fd, NULL);
     close(ctx->fd);
     free(ctx);
 }
 
-/* 处理完请求后重新挂回 epoll，并重置空闲定时器 */
-static void rearm_conn(conn_ctx_t *ctx)
+/* 重新监听读事件（等待下一个请求），并重置空闲超时 */
+static void rearm_read(conn_ctx_t *ctx)
 {
     struct epoll_event ev;
     memset(&ev, 0, sizeof(ev));
@@ -255,14 +301,71 @@ static void rearm_conn(conn_ctx_t *ctx)
     timer_wheel_add(ctx->timer, ctx->fd, KEEPALIVE_IDLE, on_conn_timeout, ctx);
 }
 
-/* 工作线程入口：独占处理一个连接上的可读事件 */
+/* 重新监听写事件（发送缓冲暂满，等可写后续传），同样挂超时防空耗 */
+static void rearm_write(conn_ctx_t *ctx)
+{
+    struct epoll_event ev;
+    memset(&ev, 0, sizeof(ev));
+    ev.events = EPOLLOUT | EPOLLONESHOT;
+    ev.data.ptr = ctx;
+    epoll_ctl(ctx->epfd, EPOLL_CTL_MOD, ctx->fd, &ev);
+    timer_wheel_add(ctx->timer, ctx->fd, KEEPALIVE_IDLE, on_conn_timeout, ctx);
+}
+
+/* 一个响应完整发送后的收尾：关闭文件、从 rbuf 摘除已消费请求头；
+ * 返回 0 表示连接可继续处理下一请求，-1 表示连接应关闭 */
+static int finish_response(conn_ctx_t *ctx)
+{
+    if (ctx->filefd >= 0)
+    {
+        close(ctx->filefd);
+        ctx->filefd = -1;
+    }
+    int keep = ctx->cur_keep;
+    int remain = ctx->rlen - ctx->cur_header_len;
+    if (remain < 0)
+    {
+        remain = 0;
+    }
+    if (remain > 0)
+    {
+        memmove(ctx->rbuf, ctx->rbuf + ctx->cur_header_len, (size_t)remain);
+    }
+    ctx->rlen = remain;
+    ctx->state = CONN_READING;
+    return keep ? 0 : -1;
+}
+
+/* 工作线程入口：EPOLLONESHOT 保证独占连接，处理读/写就绪事件 */
 static void conn_worker(void *arg)
 {
     conn_ctx_t *ctx = (conn_ctx_t *)arg;
     int fd = ctx->fd;
+    /* 定时器已在主线程投递事件前摘除，此处无需再操作定时器 */
 
-    /* 连接开始处理：取消空闲超时定时器 */
-    timer_wheel_remove(ctx->timer, fd);
+    /* ===== 写续传：上次发送缓冲暂满，EPOLLOUT 触发后续传 ===== */
+    if (ctx->state == CONN_WRITING)
+    {
+        int r = flush_response(ctx);
+        if (r == 1)
+        {
+            rearm_write(ctx); /* 仍然不可写，继续等 */
+            return;
+        }
+        if (r < 0)
+        {
+            close_conn(ctx);
+            return;
+        }
+        if (finish_response(ctx) != 0) /* 响应发送完成 */
+        {
+            close_conn(ctx); /* 对端要求关闭或出错 */
+            return;
+        }
+        /* 发送完成：落到下面的读流程，处理管道化残留/新数据 */
+    }
+
+    /* ===== 读流程 ===== */
 
     /* 1. 尽可能读完当前可读数据（非阻塞 socket，读到 EAGAIN 为止） */
     int peer_closed = 0;
@@ -299,7 +402,7 @@ static void conn_worker(void *arg)
     {
         if (ctx->rlen == 0)
         {
-            break; /* 缓冲区已空，等待下一次 epoll 通知 */
+            break; /* 缓冲区已空 */
         }
 
         http_request_t req;
@@ -314,10 +417,10 @@ static void conn_worker(void *arg)
                 close_conn(ctx);
                 return;
             }
-            /* 请求头还没收全：重新监听，等剩余数据到达 */
+            /* 请求头还没收全：等剩余数据到达；对端已关闭则收尾 */
             if (!peer_closed)
             {
-                rearm_conn(ctx);
+                rearm_read(ctx);
             }
             else
             {
@@ -336,37 +439,47 @@ static void conn_worker(void *arg)
             strcpy(fake.method, "GET");
             strcpy(fake.path, "/__forbidden__");
             fake.keep_alive = 0;
-            serve_request(ctx, &fake);
-            close_conn(ctx);
+            build_response(ctx, &fake);
+            ctx->cur_header_len = ctx->rlen; /* 丢弃全部脏数据 */
+            int r = flush_response(ctx);
+            if (r == 1)
+            {
+                ctx->state = CONN_WRITING; /* 罕见：404 页很大时等 EPOLLOUT 后关闭 */
+                rearm_write(ctx);
+            }
+            else
+            {
+                close_conn(ctx);
+            }
             return;
         }
 
-        /* 3. 请求完整：提供服务（发送响应头 + sendfile 文件体） */
-        int keep = serve_request(ctx, &req);
-
-        /* 4. 移除已消费的请求头字节，剩余的是管道化的下一个请求 */
-        int remain = ctx->rlen - req.header_len;
-        if (remain > 0)
+        /* 3. 构建并增量发送响应 */
+        build_response(ctx, &req);
+        ctx->cur_header_len = req.header_len;
+        int r = flush_response(ctx);
+        if (r == 1)
         {
-            memmove(ctx->rbuf, ctx->rbuf + req.header_len, (size_t)remain);
+            /* 发送缓冲暂满：保存现场，等 EPOLLOUT 续传（EPOLLONESHOT 独占） */
+            ctx->state = CONN_WRITING;
+            rearm_write(ctx);
+            return;
         }
-        ctx->rlen = remain;
-
-        if (!keep)
+        if (r < 0 || finish_response(ctx) != 0)
         {
             close_conn(ctx);
             return;
         }
     }
 
-    /* 5. 缓冲区已空：对端已关闭则收尾，否则重新挂回 epoll 等待下一个请求 */
+    /* 4. 缓冲区已空：对端已关闭则收尾，否则重新挂回 epoll 等待下一请求 */
     if (peer_closed)
     {
         close_conn(ctx);
     }
     else
     {
-        rearm_conn(ctx);
+        rearm_read(ctx);
     }
 }
 
@@ -532,6 +645,8 @@ int main(int argc, char **argv)
                     ctx->fd = cfd;
                     ctx->epfd = epfd;
                     ctx->timer = timer;
+                    ctx->state = CONN_READING;
+                    ctx->filefd = -1;
                     inet_ntop(AF_INET, &caddr.sin_addr, ctx->ip, sizeof(ctx->ip));
 
                     /* ONESHOT：事件触发后自动 disarm，保证同一连接不被多线程处理 */
@@ -548,8 +663,11 @@ int main(int argc, char **argv)
             }
             else
             {
-                /* 连接可读：交给线程池处理 */
+                /* 连接可读/可写：先摘除超时定时器，再投递给线程池。
+                 * 这样工作线程独占连接期间时间轮绝不可能触发关闭，
+                 * 彻底消除 "回调 free(ctx) 与工作线程并发" 的 use-after-free。 */
                 conn_ctx_t *ctx = (conn_ctx_t *)events[i].data.ptr;
+                timer_wheel_remove(timer, ctx->fd);
                 if (threadpool_add(pool, conn_worker, ctx) != 0)
                 {
                     log_error("threadpool add failed, closing fd=%d", ctx->fd);
