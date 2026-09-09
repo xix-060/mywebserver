@@ -2,3 +2,4 @@ myweb
 *.o
 *.zip
 *.log
+bench-result-*.txt

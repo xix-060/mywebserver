@@ -524,17 +524,19 @@ static int create_listen_socket(int port)
 static void usage(const char *prog)
 {
     fprintf(stderr,
-            "用法: %s [-p 端口] [-t 线程数] [-d 网站根目录] [-l 日志文件]\n"
+            "用法: %s [-p 端口] [-t 线程数] [-d 网站根目录] [-l 日志文件] [-q]\n"
             "  -p  监听端口（默认 80，80 端口需要 root 权限）\n"
             "  -t  工作线程数（默认 = CPU 核数）\n"
             "  -d  网站静态文件根目录（默认当前目录）\n"
-            "  -l  访问日志文件路径（默认仅输出到终端）\n",
+            "  -l  访问日志文件路径（默认仅输出到终端）\n"
+            "  -q  静默模式：只记录 WARN/ERROR（压测时使用，避免 INFO 刷屏）\n",
             prog);
 }
 
 int main(int argc, char **argv)
 {
     const char *logfile = NULL;
+    int log_level = LOG_INFO;
 
     for (int i = 1; i < argc; i++)
     {
@@ -554,6 +556,10 @@ int main(int argc, char **argv)
         {
             logfile = argv[++i];
         }
+        else if (strcmp(argv[i], "-q") == 0)
+        {
+            log_level = LOG_WARN;
+        }
         else
         {
             usage(argv[0]);
@@ -565,7 +571,7 @@ int main(int argc, char **argv)
     signal(SIGINT, on_signal);
     signal(SIGTERM, on_signal);
 
-    if (log_init(logfile, LOG_INFO) != 0)
+    if (log_init(logfile, log_level) != 0)
     {
         fprintf(stderr, "日志初始化失败\n");
         return 1;
