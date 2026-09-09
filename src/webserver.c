@@ -35,6 +35,7 @@
 #include <sys/sendfile.h>
 #include <sys/epoll.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 
 #include "log.h"
@@ -653,6 +654,13 @@ int main(int argc, char **argv)
                         }
                         break; /* EAGAIN：本轮连接已全部取完 */
                     }
+
+                    /* 禁用 Nagle 算法：HTTP 响应头/文件尾包等小数据立即发送。
+                     * 否则 Nagle 与对端 delayed ACK（最长40ms）互相等待，
+                     * 会给每个请求引入约 40ms 的固定延迟 */
+                    int nodelay = 1;
+                    setsockopt(cfd, IPPROTO_TCP, TCP_NODELAY,
+                               &nodelay, sizeof(nodelay));
 
                     conn_ctx_t *ctx = (conn_ctx_t *)calloc(1, sizeof(conn_ctx_t));
                     if (ctx == NULL)
