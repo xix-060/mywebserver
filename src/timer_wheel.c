@@ -5,8 +5,12 @@
  *   rotation = timeout / slot_count （需要转的圈数）
  *   slot     = (cur_slot + timeout) % slot_count
  * tick 推进时检查当前槽：rotation>0 则减一并留下，rotation==0 则到期触发回调。
- * add/remove/tick 均在主线程（epoll 线程）发生，仍加锁以保证
- * 与工作线程的 remove 操作互斥。
+ *
+ * 线程模型：
+ *   tick 只在主线程调用；add/remove 在主线程（accept/分发）和工作线程
+ *   （rearm/close_conn）都会调用，故所有链表操作持锁互斥；
+ *   到期回调在锁外执行（回调会 close fd、free 连接上下文）。
+ *   数据结构保证不变式：同一 fd 至多一个定时器节点（add 前先去重）。
  */
 #include "timer_wheel.h"
 
@@ -70,6 +74,27 @@ int timer_wheel_add(timer_wheel_t *w, int fd, int timeout_sec,
     }
 
     pthread_mutex_lock(&w->lock);
+
+    /* 防御性保证不变式：同一 fd 至多一个定时器节点，
+     * 先摘除可能残留的旧节点（正常时序下不会命中） */
+    for (int i = 0; i < w->slot_count; i++)
+    {
+        timer_node_t **pp = &w->slots[i];
+        while (*pp != NULL)
+        {
+            timer_node_t *cur = *pp;
+            if (cur->fd == fd)
+            {
+                *pp = cur->next;
+                free(cur);
+            }
+            else
+            {
+                pp = &cur->next;
+            }
+        }
+    }
+
     node->rotation = timeout_sec / w->slot_count;
     int slot = (w->cur_slot + timeout_sec) % w->slot_count;
     node->next = w->slots[slot];

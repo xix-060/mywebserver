@@ -290,26 +290,29 @@ static void close_conn(conn_ctx_t *ctx)
     free(ctx);
 }
 
-/* 重新监听读事件（等待下一个请求），并重置空闲超时 */
+/* 重新监听读事件（等待下一个请求），并重置空闲超时。
+ * 顺序必须是「先加定时器，再武装 epoll」：若先武装 epoll，主线程可能
+ * 在定时器加入前就返回新事件并执行 remove（摘了个空），导致同一连接
+ * 残留两个定时器节点，到期回调会 free 掉正在被其他线程处理的 ctx。 */
 static void rearm_read(conn_ctx_t *ctx)
 {
+    timer_wheel_add(ctx->timer, ctx->fd, KEEPALIVE_IDLE, on_conn_timeout, ctx);
     struct epoll_event ev;
     memset(&ev, 0, sizeof(ev));
     ev.events = EPOLLIN | EPOLLONESHOT | EPOLLRDHUP;
     ev.data.ptr = ctx;
     epoll_ctl(ctx->epfd, EPOLL_CTL_MOD, ctx->fd, &ev);
-    timer_wheel_add(ctx->timer, ctx->fd, KEEPALIVE_IDLE, on_conn_timeout, ctx);
 }
 
-/* 重新监听写事件（发送缓冲暂满，等可写后续传），同样挂超时防空耗 */
+/* 重新监听写事件（发送缓冲暂满，等可写后续传）；顺序同理：先定时器后武装 */
 static void rearm_write(conn_ctx_t *ctx)
 {
+    timer_wheel_add(ctx->timer, ctx->fd, KEEPALIVE_IDLE, on_conn_timeout, ctx);
     struct epoll_event ev;
     memset(&ev, 0, sizeof(ev));
     ev.events = EPOLLOUT | EPOLLONESHOT;
     ev.data.ptr = ctx;
     epoll_ctl(ctx->epfd, EPOLL_CTL_MOD, ctx->fd, &ev);
-    timer_wheel_add(ctx->timer, ctx->fd, KEEPALIVE_IDLE, on_conn_timeout, ctx);
 }
 
 /* 一个响应完整发送后的收尾：关闭文件、从 rbuf 摘除已消费请求头；
@@ -649,16 +652,17 @@ int main(int argc, char **argv)
                     ctx->filefd = -1;
                     inet_ntop(AF_INET, &caddr.sin_addr, ctx->ip, sizeof(ctx->ip));
 
+                    /* 先挂超时定时器，再加入 epoll 武装（与 rearm 顺序一致，
+                     * 保证事件可能返回时定时器必然存在） */
+                    timer_wheel_add(timer, cfd, KEEPALIVE_IDLE,
+                                    on_conn_timeout, ctx);
+
                     /* ONESHOT：事件触发后自动 disarm，保证同一连接不被多线程处理 */
                     struct epoll_event cev;
                     memset(&cev, 0, sizeof(cev));
                     cev.events = EPOLLIN | EPOLLONESHOT | EPOLLRDHUP;
                     cev.data.ptr = ctx;
                     epoll_ctl(epfd, EPOLL_CTL_ADD, cfd, &cev);
-
-                    /* 新连接也挂超时定时器，防空连接占用资源 */
-                    timer_wheel_add(timer, cfd, KEEPALIVE_IDLE,
-                                    on_conn_timeout, ctx);
                 }
             }
             else
