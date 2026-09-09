@@ -145,8 +145,9 @@ static int serve_request(conn_ctx_t *ctx, const http_request_t *req)
     int filefd = -1;
     struct stat st;
 
-    /* 仅支持 GET，其他方法按 404 处理（与 v1 行为一致） */
-    if (strcmp(req->method, "GET") != 0)
+    /* 支持 GET 和 HEAD（HEAD 只回响应头不回 body）；其他方法按 404 处理 */
+    int is_head = (strcmp(req->method, "HEAD") == 0);
+    if (strcmp(req->method, "GET") != 0 && !is_head)
     {
         status = 404;
     }
