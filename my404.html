@@ -1,11 +1,281 @@
-<html>
-    <head>
-        <meta charset=utf-8 http-equiv="refresh" content="5;url=index.html">
-        <title>资源没找到！</title>
-    </head>
-    <body>
-        <h3>页面出错了！！！ 5秒后自动跳转到主页！
-            <br>
-            <hr>
-    </body>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="8;url=index.html">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>🌸 花朵走丢啦 · 404</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', 'Comic Neue', 'Poppins', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(145deg, #fbe9f0 0%, #e0f0e8 100%);
+            color: #4a3b2c;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .navbar {
+            background: rgba(255, 248, 240, 0.95);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 2px solid #ffb7c5;
+        }
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 68px;
+        }
+        .nav-logo {
+            font-size: 1.6rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #e86f8c, #b5838d);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-decoration: none;
+        }
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+        .nav-menu a {
+            text-decoration: none;
+            color: #8b5e6b;
+            font-weight: 600;
+            transition: 0.2s;
+            padding: 6px 0;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-menu a:hover,
+        .nav-menu a.active {
+            color: #e86f8c;
+            border-bottom-color: #e86f8c;
+        }
+
+        /* ===== 404 主区域 ===== */
+        .error-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            position: relative;
+        }
+
+        .error-card {
+            position: relative;
+            z-index: 2;
+            background: #fffef7;
+            border-radius: 48px;
+            padding: 56px 48px 48px;
+            max-width: 560px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid #ffe2d4;
+            box-shadow: 0 18px 40px rgba(180, 90, 107, 0.15);
+        }
+
+        .error-code {
+            font-size: 6.5rem;
+            font-weight: 900;
+            line-height: 1;
+            background: linear-gradient(135deg, #e86f8c 20%, #f6ae9a 55%, #c8a8d8 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 8px 24px rgba(232, 111, 140, 0.25);
+            margin-bottom: 8px;
+            letter-spacing: 4px;
+        }
+
+        .error-emoji {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .error-card h1 {
+            font-size: 1.8rem;
+            color: #b45a6b;
+            margin-bottom: 14px;
+        }
+
+        .error-card p {
+            color: #6b4e5a;
+            font-size: 1.05rem;
+            margin-bottom: 8px;
+        }
+
+        .countdown {
+            display: inline-block;
+            margin: 18px 0 26px;
+            padding: 8px 22px;
+            background: rgba(255, 230, 240, 0.7);
+            border-radius: 50px;
+            color: #c46b6b;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .countdown b {
+            color: #e86f8c;
+            font-size: 1.15rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn-primary {
+            background: #f6ae9a;
+            color: white;
+            padding: 12px 32px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s;
+            box-shadow: 0 6px 0 #b95c48;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            background: #f1967e;
+            box-shadow: 0 8px 0 #b95c48;
+        }
+        .btn-secondary {
+            background: #b98295;
+            color: white;
+            padding: 12px 32px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s;
+            box-shadow: 0 6px 0 #724c5a;
+        }
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            background: #a96f85;
+            box-shadow: 0 8px 0 #724c5a;
+        }
+
+        footer {
+            text-align: center;
+            padding: 28px;
+            background: #ecd9cf;
+            color: #826a60;
+            margin-top: auto;
+            font-size: 0.85rem;
+        }
+
+        /* ===== 飘落花瓣 ===== */
+        .petal {
+            position: fixed;
+            top: -40px;
+            z-index: 1;
+            font-size: 1.3rem;
+            pointer-events: none;
+            animation: fall linear infinite;
+        }
+        .petal:nth-child(1)  { left: 6%;  animation-duration: 9s;  animation-delay: 0s;   }
+        .petal:nth-child(2)  { left: 18%; animation-duration: 11s; animation-delay: 1.5s; }
+        .petal:nth-child(3)  { left: 30%; animation-duration: 8s;  animation-delay: 3s;   }
+        .petal:nth-child(4)  { left: 44%; animation-duration: 12s; animation-delay: 0.8s; }
+        .petal:nth-child(5)  { left: 58%; animation-duration: 10s; animation-delay: 2.2s; }
+        .petal:nth-child(6)  { left: 70%; animation-duration: 9.5s; animation-delay: 4s;   }
+        .petal:nth-child(7)  { left: 82%; animation-duration: 11.5s; animation-delay: 1s; }
+        .petal:nth-child(8)  { left: 93%; animation-duration: 8.5s; animation-delay: 2.8s; }
+
+        @keyframes fall {
+            0%   { transform: translateY(0) rotate(0deg);          opacity: 0;   }
+            10%  { opacity: 0.9; }
+            100% { transform: translateY(105vh) rotate(320deg);    opacity: 0.3; }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-8px); }
+        }
+
+        @media (max-width: 768px) {
+            .nav-menu { gap: 1rem; font-size: 0.9rem; }
+            .error-card { padding: 40px 24px 36px; border-radius: 36px; }
+            .error-code { font-size: 4.5rem; }
+            .error-card h1 { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">🌸 花仙·拉贝尔</a>
+            <ul class="nav-menu">
+                <li><a href="index.html">拉贝尔大陆</a></li>
+                <li><a href="collection.html">🌸 精灵王图鉴</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 飘落花瓣装饰 -->
+    <span class="petal">🌸</span>
+    <span class="petal">🌷</span>
+    <span class="petal">🌸</span>
+    <span class="petal">💮</span>
+    <span class="petal">🌺</span>
+    <span class="petal">🌸</span>
+    <span class="petal">🌷</span>
+    <span class="petal">🌸</span>
+
+    <div class="error-wrap">
+        <div class="error-card">
+            <div class="error-emoji">🌸</div>
+            <div class="error-code">404</div>
+            <h1>哎呀，这朵花迷路啦！</h1>
+            <p>你寻找的页面可能被风刮走了，<br>或者精灵王们把它藏进了花之法典～</p>
+            <div class="countdown">⏳ <b id="cd">8</b> 秒后自动飞回拉贝尔大陆</div>
+            <div class="btn-group">
+                <a href="index.html" class="btn-primary">🏠 返回主页</a>
+                <a href="collection.html" class="btn-secondary">📖 查看精灵王图鉴</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>🌸 非官方站 · 仅用于个人兴趣收集与分享 🌸<br>© 牟圣熹的小花仙回忆簿 | 动画版权归上海淘米动画有限公司所有</p>
+    </footer>
+
+    <script>
+        // 倒计时提示（与 meta refresh 的 8 秒保持一致）
+        var left = 8;
+        var el = document.getElementById('cd');
+        var timer = setInterval(function () {
+            left--;
+            if (left <= 0) {
+                clearInterval(timer);
+                el.textContent = 0;
+            } else {
+                el.textContent = left;
+            }
+        }, 1000);
+    </script>
+</body>
 </html>
