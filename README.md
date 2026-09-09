@@ -151,7 +151,7 @@ mywebserver/
 - [x] ~~增量 HTTP 解析（半包/粘包）~~
 - [x] ~~异步日志、配置化、优雅退出~~
 - [ ] 主从 Reactor（多 Sub-Reactor 分担连接分发）
-- [ ] 支持更多 HTTP 方法（POST、HEAD）与静态文件缓存（ETag、Last-Modified）
+- [ ] 支持 POST 方法与静态文件缓存（ETag、Last-Modified）
 - [ ] 支持 HTTPS（OpenSSL）
 - [ ] 最小堆定时器替代时间轮以支持任意精度超时
 

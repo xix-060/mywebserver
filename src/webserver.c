@@ -211,7 +211,8 @@ static int serve_request(conn_ctx_t *ctx, const http_request_t *req)
     }
     if (filefd >= 0)
     {
-        if (send_file_all(ctx->fd, filefd, size) < 0)
+        /* HEAD 请求只返回响应头，不发送文件体；Content-Length 仍为文件大小 */
+        if (!is_head && send_file_all(ctx->fd, filefd, size) < 0)
         {
             keep = 0;
         }
