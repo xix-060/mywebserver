@@ -23,9 +23,9 @@ if ss -ltn 2>/dev/null | grep -q ":$PORT "; then
     exit 1
 fi
 
-# -q 静默模式：服务器只记录 WARN/ERROR，全部重定向到文件，不干扰 wrk 输出
+# -q 静默模式：服务器只记录 WARN/ERROR；stderr 重定向到文件，不干扰 wrk 输出
 echo "==> 启动服务器: port=$PORT threads=${THREADS:-auto}（日志: server-bench.log）"
-./myweb -p "$PORT" -t "$THREADS" -q -l server-bench.log >server-bench.log 2>&1 &
+./myweb -p "$PORT" -t "$THREADS" -q >server-bench.log 2>&1 &
 SERVER_PID=$!
 trap "kill $SERVER_PID 2>/dev/null" EXIT
 
