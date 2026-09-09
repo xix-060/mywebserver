@@ -147,6 +147,8 @@ mywebserver/
 - **Keep-Alive vs 短连接（同为 v2）**：QPS 再提升约 **2.3 倍**（50,141 vs 21,568），P99 延迟从 61ms 降到 9.7ms，省掉了 TCP 三次握手/四次挥手的开销。
 
 > 复现：`./benchmark.sh 8080 4`，结果保存在 `bench-result-*.txt`。
+>
+> 完整的排查过程（EAGAIN 误杀、定时器竞态、时间轮飞转、Nagle 40ms 延迟等 6 个问题的现象/根因/修复）见 [docs/performance-notes.md](docs/performance-notes.md)。
 
 ## 待改进方向
 
