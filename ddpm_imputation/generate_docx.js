@@ -361,13 +361,13 @@ const doc = new Document({
       // ============ 参考文献 ============
       h1("参考文献"),
       p("[1] Ho J, Jain A, Abbeel P. Denoising Diffusion Probabilistic Models[C]//Advances in Neural Information Processing Systems (NeurIPS), 2020, 33: 6840-6851."),
-      p("[2] Nichol A Q, Dhariwal P. Improved Denoising Diffusion Probabilistic Models[C]//International Conference on Machine Learning (ICML), 2021: 8162-8171."),
-      p("[3] Lugmayr A, Danelljan M, Romero A, et al. RePaint: Inpainting using Denoising Diffusion Probabilistic Models[C]//IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2022: 11461-11471."),
-      p("[4] Kotelnikov A, Baranchuk D, Rubachev I, et al. TabDDPM: Modelling Tabular Data with Diffusion Models[C]//International Conference on Machine Learning (ICML), 2023."),
-      p("[5] Tashiro Y, Song J, Song Y, et al. CSDI: Conditional Score-based Diffusion Models for Probabilistic Time Series Imputation[C]//Advances in Neural Information Processing Systems (NeurIPS), 2021, 34: 24809-24821."),
-      p("[6] Smith J W, Everhart J E, Dickson W C, et al. Using the ADAP Learning Algorithm to Forecast the Onset of Diabetes Mellitus[C]//Proceedings of the Annual Symposium on Computer Application in Medical Care, 1988: 261-265."),
-      p("[7] van Buuren S, Oudshoorn K. MICE: Multivariate Imputation by Chained Equations in R[J]. Journal of Statistical Software, 2011, 45(3): 1-67."),
-      p("[8] Cover T, Hart P. Nearest Neighbor Pattern Classification[J]. IEEE Transactions on Information Theory, 1967, 13(1): 21-27."),
+      p("[2] Lugmayr A, Danelljan M, Romero A, et al. RePaint: Inpainting using Denoising Diffusion Probabilistic Models[C]//IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2022: 11461-11471."),
+      p("[3] 闫志浩, 周长兵, 李小翠. 生成扩散模型研究综述[J]. 计算机科学, 2024, 51(1): 273-283."),
+      p("[4] 王圣举, 张赞. 基于加速扩散模型的缺失值插补算法[J]. 浙江大学学报(工学版), 2025, 59(7): 1471-1480. DOI: 10.3785/j.issn.1008-973X.2025.07.015"),
+      p("[5] 庞昭辰, 刘明, 张立宪, 曹喜滨, 段广仁. 基于条件扩散模型的卫星遥测数据缺失值插补方法[J]. 自动化学报, 2025, 51(10): 2302-2312."),
+      p("[6] 周立, 吴洋洋, 苗晓晔. 基于深度学习的不完整时序数据补全方法综述[J]. 计算机研究与发展, 2025, 62(9): 2233-2258. DOI: 10.7544/issn1000-1239.202550449"),
+      p("[7] 刘且根, 官瑜, 伍伟文, 单洪明, 梁栋. 基于扩散模型的医学成像研究综述[J]. CT理论与应用研究, 2024, 34(3). DOI: 10.15953/j.ctta.2024.316"),
+      p("[8] 李毅, 王童欣, 庞博中. 可解释性视角下缺失值填补方法比较研究[J]. 计算机科学, 2025, 52(S2): 602-609."),
 
       new Paragraph({ children: [new PageBreak()] }),
 
